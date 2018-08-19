@@ -1,0 +1,61 @@
+[Master]
+git clone https://github.com/pong3ds/sourcesetup
+sudo reboot
+
+
+[Master]
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+sudo kubeadm token list
+
+
+[Master]
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+[Workers]
+sudo kubeadm join 10.0.1.170:6443 --token 5c6ld2.bpy4r0x7ouujuo4p --discovery-token-ca-cert-hash sha256:5a06a17e9e0d1b0d0ef0fd44279968c0545f3301bae8dacd9743a08e009a847a
+
+
+[Master]
+watch kubectl get nodes
+
+[Master]
+To get parameter for --discovery-token-ca-cert-hash run
+openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | \
+   openssl dgst -sha256 -hex | sed 's/^.* //'
+
+To get parameter for --token run
+sudo kubeadm token list
+
+If token is expired run
+sudo kubeadm token create
+
+[Bashtion]
+scp playwithk8s.master:~/.kube/config ~/.kube/config
+
+*** [Master]
+Teardown
+kubectl drain <node name> --delete-local-data --force --ignore-daemonsets
+kubectl delete node <node name>
+
+kubeadm reset
+
+[Master]
+git clone https://github.com/nginxinc/kubernetes-ingress.git
+cd kubernetes-ingress/install
+
+** Use document here https://github.com/nginxinc/kubernetes-ingress/blob/master/docs/installation.md
+
+kubectl apply -f common/ns-and-sa.yaml
+kubectl apply -f common/default-server-secret.yaml
+kubectl apply -f common/nginx-config.yaml
+kubectl apply -f rbac/rbac.yaml
+kubectl apply -f daemon-set/nginx-ingress.yaml
+
+** Troubleshooting document https://github.com/kubernetes/ingress-nginx/blob/master/docs/troubleshooting.md
+*** Ingress document https://github.com/kubernetes/ingress-nginx/tree/master/docs
+
+**** Delete ทั้ง namespace
+kubectl delete namespace nginx-ingress
